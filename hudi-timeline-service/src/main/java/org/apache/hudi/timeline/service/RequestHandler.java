@@ -54,6 +54,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -121,11 +122,16 @@ public class RequestHandler {
     String lastKnownInstantFromClient =
         ctx.queryParam(RemoteHoodieTableFileSystemView.LAST_INSTANT_TS, HoodieTimeline.INVALID_INSTANT_TS);
     String timelineHashFromClient = ctx.queryParam(RemoteHoodieTableFileSystemView.TIMELINE_HASH, "");
+    long timelineLastUpdatedTime =
+        Long.parseLong(Objects.requireNonNull(
+            ctx.queryParam(RemoteHoodieTableFileSystemView.TIMELINE_LAST_UPDATED_TIME,
+                Long.toString(Long.MAX_VALUE))));
     HoodieTimeline localTimeline =
         viewManager.getFileSystemView(basePath).getTimeline().filterCompletedAndCompactionInstants();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Client [ LastTs=" + lastKnownInstantFromClient + ", TimelineHash=" + timelineHashFromClient
-          + "], localTimeline=" + localTimeline.getInstants().collect(Collectors.toList()));
+          + ", LastUpdatedTime=" + timelineLastUpdatedTime + "], localTimeline="
+          + localTimeline.getInstants().collect(Collectors.toList()));
     }
 
     if ((localTimeline.getInstants().count() == 0)
@@ -134,7 +140,8 @@ public class RequestHandler {
     }
 
     String localTimelineHash = localTimeline.getTimelineHash();
-    if (!localTimelineHash.equals(timelineHashFromClient)) {
+    if (!localTimelineHash.equals(timelineHashFromClient)
+        && localTimeline.getLastUpdateTime() < timelineLastUpdatedTime) {
       return true;
     }
 

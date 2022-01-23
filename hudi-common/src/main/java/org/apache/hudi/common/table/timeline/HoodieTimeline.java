@@ -281,6 +281,11 @@ public interface HoodieTimeline extends Serializable {
    */
   Option<byte[]> getInstantDetails(HoodieInstant instant);
 
+  /**
+   * Get the time when this timeline updated.
+   */
+  long getLastUpdateTime();
+
   boolean isEmpty(HoodieInstant instant);
 
   /**
